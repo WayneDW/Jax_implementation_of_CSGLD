@@ -53,7 +53,7 @@ def energy_fn(position, minibatch):
     )
 
 
-### Build the CSGDL sampling step and init functions
+### Build the log-probability and gradient functions
 logprob_fn, grad_fn = gradients.logprob_and_grad_estimator(
     logprior_fn, loglikelihood_fn, data_size
 )
@@ -68,7 +68,7 @@ temperature = 50
 lr = 1e-3
 thinning_factor = 100
 
-""" SGLD module (CSGLD with zeta=0 is equivalent to SGLD) """
+""" SGLD module (CSGLD with zeta=0 is equivalent to SGLD, if you have a better way to use SGLD, feel free to use that one) """
 sgld = blackjax.csgld(
     logprob_fn,
     grad_fn,
@@ -76,7 +76,7 @@ sgld = blackjax.csgld(
     temperature=temperature,
 )
 
-### Initialize and take one step using the CSGLD algorithm
+### Initialize and take one step using the vanilla SGLD algorithm
 state = sgld.init(init_position)
 sgld_sample_list = jnp.array([])
 for iter_ in range(total_iter):
@@ -89,6 +89,7 @@ for iter_ in range(total_iter):
         print(f'iter {iter_/1000:.0f}k/{total_iter/1000:.0f}k position {state.position: .2f}')
 
 
+### Make plots for SGLD trajectory
 plt.plot(sgld_sample_list, label='SGLD')
 plt.xlabel(f'Iterations (x{thinning_factor})')
 plt.ylabel('X')
@@ -97,7 +98,7 @@ plt.title('SGLD in sample trajectory')
 plt.savefig(f'./howto_use_csgld_SGLD_trajectory_T{temperature}_iter{total_iter}_seed{mySeed}.pdf')
 plt.close()
 
-
+### Make plots for SGLD sample histogram
 plt.hist(sgld_sample_list, 100)
 plt.legend()
 plt.xlabel(f'X')
@@ -115,8 +116,9 @@ class CSGLDState(NamedTuple):
 
 
 ### specify hyperparameters (zeta and sz are the only two hyperparameters to tune)
-zeta = 2 # 3
-sz = 10 # 8 works quite well
+zeta = 2 
+sz = 10 
+
 ### The following parameters partition the energy space and no tuning is needed. 
 num_partitions = 100000
 energy_gap = 0.25
@@ -157,7 +159,7 @@ for iter_ in range(total_iter):
         csgld_energy_idx_list = jnp.append(csgld_energy_idx_list, idx)
         print(f'iter {iter_/1000:.0f}k/{total_iter/1000:.0f}k position {state.position: .2f} energy {energy_value: .2f} re-restart counter {re_start_counter}')
 
-
+### Make plots for CSGLD trajectory
 plt.plot(csgld_sample_list, label='CSGLD')
 plt.plot(sgld_sample_list, label='SGLD')
 plt.xlabel(f'Iterations (x{thinning_factor})')
@@ -167,6 +169,7 @@ plt.title('CSGLD v.s. SGLD in sample trajectory')
 plt.savefig(f'./howto_use_csgld_CSGLD_trajectory_T{temperature}_zeta{zeta}_iter{total_iter}_sz{sz}_seed{mySeed}.pdf')
 plt.close()
 
+### Make plots for CSGLD sample histogram before re-sampling
 plt.hist(csgld_sample_list, 200)
 plt.xlabel(f'X')
 plt.ylabel('Frequency')
@@ -197,6 +200,7 @@ for _ in range(3):
             samples_in_my_idx = csgld_sample_list[csgld_energy_idx_list == my_idx]
             csgld_re_sample_list = jnp.concatenate((csgld_re_sample_list, samples_in_my_idx))
 
+### Make plots for CSGLD sample histogram after re-sampling
 plt.hist(csgld_re_sample_list, 200)
 plt.xlabel(f'X')
 plt.ylabel('Frequency')
