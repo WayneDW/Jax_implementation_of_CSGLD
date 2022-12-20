@@ -212,7 +212,7 @@ plt.close()
 # 3.3 Analyze why CSGLD works
 for iters in energy_history:
     energy_pdf = energy_history[iters]
-    interested_idx = jnp.arange(15000, 30000)
+    interested_idx = jnp.arange(0, 30000)
 
     plt.plot(jnp.arange(num_partitions)[interested_idx]*energy_gap, energy_pdf[interested_idx])
     plt.xlabel(f'Energy / Partition index (x4)')
