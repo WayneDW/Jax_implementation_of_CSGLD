@@ -61,7 +61,7 @@ logprob_fn, grad_fn = gradients.logprob_and_grad_estimator(
 
 # 2. SGLD baseline
 ### specify hyperparameters for SGLD
-total_iter = 5_000
+total_iter = 20_000
 
 
 temperature = 50
@@ -120,12 +120,12 @@ class CSGLDState(NamedTuple):
 
 
 ### specify hyperparameters (zeta and sz are the only two hyperparameters to tune)
-zeta = 2 
+zeta = 3
 sz = 10
 
 ### The following parameters partition the energy space and no tuning is needed. 
-num_partitions = 50000
-energy_gap = 0.25
+num_partitions = 10000
+energy_gap = 1
 domain_radius = 50 # restart sampling when the particle explores too deep over the tails and leads to nan.
 min_energy = 3000 # an estimate of the minimum energy, should be strictly lower than the exact one.
 
