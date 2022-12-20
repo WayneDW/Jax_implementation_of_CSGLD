@@ -61,7 +61,7 @@ logprob_fn, grad_fn = gradients.logprob_and_grad_estimator(
 
 # 2. SGLD baseline
 ### specify hyperparameters for SGLD
-total_iter = 20_000
+total_iter = 40_000
 
 
 temperature = 50
@@ -120,7 +120,7 @@ class CSGLDState(NamedTuple):
 
 
 ### specify hyperparameters (zeta and sz are the only two hyperparameters to tune)
-zeta = 3
+zeta = 5
 sz = 10
 
 ### The following parameters partition the energy space and no tuning is needed. 
