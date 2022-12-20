@@ -61,7 +61,7 @@ logprob_fn, grad_fn = gradients.logprob_and_grad_estimator(
 
 # 2. SGLD baseline
 ### specify hyperparameters for SGLD
-total_iter = 5_000
+total_iter = 40_000
 
 
 temperature = 50
@@ -126,7 +126,7 @@ sz = 10
 ### The following parameters partition the energy space and no tuning is needed. 
 num_partitions = 50000
 energy_gap = 0.25
-domain_radius = 50 # restart sampling when the particle explores too deep over the tails and leads to nan.
+domain_radius = 50 # restart sampling when the particle explores too deep. e.g. loglikelihood_fn(80, 5)=-inf
 min_energy = 3000 # an estimate of the minimum energy, should be strictly lower than the exact one.
 
 csgld = blackjax.csgld(
@@ -217,13 +217,10 @@ plt.close()
 
 # 3.3 Analyze why CSGLD works
 
-print(normalized_energy_pdf)
-
-plt.plot(scaled_density)
-plt.xlabel(f'Partition index')
+plt.plot(jnp.arange(num_partitions)*energy_gap, state.energy_pdf)
+plt.xlabel(f'Energy / Partition index (x4)')
 plt.ylabel('Density')
 plt.legend()
-plt.xlim(left=-15, right=35)
 plt.title('Normalized energy PDF')
 plt.savefig(f'./howto_use_csgld_CSGLD_energy_pdf_T{temperature}_zeta{zeta}_iter{total_iter}_sz{sz}_seed{mySeed}_v2.pdf')
 plt.close()
