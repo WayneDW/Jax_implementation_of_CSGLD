@@ -50,7 +50,6 @@ def loglikelihood_fn(position, x):
     mixture_2 = jax.scipy.stats.norm.pdf(x, loc=-position + gamma, scale=sigma)
     return jnp.log(0.5 * mixture_1 + 0.5 * mixture_2).sum()
 
-
 ### compute the energy function
 def energy_fn(position, minibatch):
     logprior = logprior_fn(position)
@@ -146,6 +145,37 @@ csgld = blackjax.csgld(
 )
 
 ## 3.1 Simulate via the CSGLD algorithm
+
+state = csgld.init(init_position)
+domain_radius = 50
+re_start_counter = 0 # in case the particle goes beyond the domain
+csgld_sample_list, csgld_energy_idx_list = jnp.array([]), jnp.array([])
+for iter_ in range(total_iter):
+    rng_key, subkey = jax.random.split(rng_key)
+    stepsize_SA = min(1e-2, (iter_+100)**(-0.8)) * sz
+
+    data_batch = jax.random.shuffle(rng_key, X_data)[:batch_size, :]
+    state = jax.jit(csgld.step)(subkey, state, data_batch, lr, stepsize_SA)
+    if jnp.abs(state.position) > domain_radius:
+        re_start_counter += 1
+        state = CSGLDState(jax.random.uniform(rng_key, minval=-domain_radius, maxval=domain_radius), \
+                           state.energy_pdf, \
+                           state.energy_idx)
+
+    if iter_ % thinning_factor == 0:
+        energy_value = energy_fn(state.position, data_batch)
+        csgld_sample_list = jnp.append(csgld_sample_list, state.position)
+        ### For re-sampling only.
+        idx = jax.lax.min(jax.lax.max(jax.lax.floor((energy_value - min_energy) / energy_gap + 1).astype("int32"), 1,), num_partitions - 1,)
+        csgld_energy_idx_list = jnp.append(csgld_energy_idx_list, idx)
+        print(f'iter {iter_/1000:.0f}k/{total_iter/1000:.0f}k position {state.position: .2f} energy {energy_value: .2f} re-restart counter {re_start_counter}')
+
+
+
+
+
+
+'''
 state = csgld.init(init_position)
 
 csgld_sample_list, csgld_energy_idx_list = jnp.array([]), jnp.array([])
@@ -163,7 +193,7 @@ for iter_ in range(total_iter):
         idx = jax.lax.min(jax.lax.max(jax.lax.floor((energy_value - min_energy) / energy_gap + 1).astype("int32"), 1,), num_partitions - 1,)
         csgld_energy_idx_list = jnp.append(csgld_energy_idx_list, idx)
         print(f'iter {iter_/1000:.0f}k/{total_iter/1000:.0f}k position {state.position: .2f} energy {energy_value: .2f}')
-
+'''
 ### Make plots for CSGLD trajectory
 plt.plot(csgld_sample_list, label='CSGLD')
 #plt.plot(sgld_sample_list, label='SGLD')
