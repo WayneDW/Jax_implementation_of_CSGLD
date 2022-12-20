@@ -182,8 +182,12 @@ plt.close()
 # 3.2 Re-sampling via importance sampling (state.energy_pdf ** zeta)
 # ==============================================================================================================
 # pick important partitions and ignore the rest
-important_idx = jnp.where(state.energy_pdf > jnp.quantile(state.energy_pdf, 0.95))[0]
-scaled_energy_pdf = state.energy_pdf[important_idx]**zeta / (state.energy_pdf[important_idx]**zeta).max()
+#important_idx = jnp.where(state.energy_pdf > jnp.quantile(state.energy_pdf, 0.95))[0]
+#scaled_energy_pdf = state.energy_pdf[important_idx]**zeta / (state.energy_pdf[important_idx]**zeta).max()
+
+normalized_energy_pdf = (state.energy_pdf**zeta) / (state.energy_pdf**zeta).sum()
+important_idx = jnp.where(normalized_energy_pdf > jnp.quantile(normalized_energy_pdf, 0.95))[0]
+scaled_energy_pdf = normalized_energy_pdf / normalized_energy_pdf[important_idx].max()
 
 csgld_re_sample_list = jnp.array([])
 for _ in range(5):
