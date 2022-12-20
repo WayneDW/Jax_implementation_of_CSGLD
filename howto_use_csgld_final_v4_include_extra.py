@@ -20,7 +20,7 @@ rng_key, data_key0, data_key1, data_key2 = jax.random.split(rng_key, 4)
 
 ### specify data and batch size 
 data_size = 1000
-batch_size = 100
+batch_size = 1000
 
 
 ### create a data that follows a Gaussian mixture distribution
@@ -125,7 +125,7 @@ zeta = 1
 sz = 1
 
 ### The following parameters partition the energy space and no tuning is needed. 
-num_partitions = 10000
+num_partitions = 15000
 energy_gap = 2.5
 min_energy = 0 # an estimate of the minimum energy, should be strictly lower than the exact one.
 
