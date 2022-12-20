@@ -61,7 +61,7 @@ logprob_fn, grad_fn = gradients.logprob_and_grad_estimator(
 
 # 2. SGLD baseline
 ### specify hyperparameters for SGLD
-total_iter = 10_000
+total_iter = 20_000
 
 
 temperature = 50
@@ -214,3 +214,14 @@ plt.title('CSGLD distribution after re-sampling')
 plt.savefig(f'./howto_use_csgld_CSGLD_distributions_after_T{temperature}_zeta{zeta}_iter{total_iter}_sz{sz}_seed{mySeed}_v2.pdf')
 plt.close()
 
+
+# 3.3 Analyze why CSGLD works
+
+plt.plot(normalized_energy_pdf)
+plt.xlabel(f'Partition index')
+plt.ylabel('Density')
+plt.legend()
+plt.xlim(left=-15, right=35)
+plt.title('Normalized energy PDF')
+plt.savefig(f'./howto_use_csgld_CSGLD_energy_pdf_T{temperature}_zeta{zeta}_iter{total_iter}_sz{sz}_seed{mySeed}_v2.pdf')
+plt.close()
