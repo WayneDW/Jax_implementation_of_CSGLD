@@ -61,7 +61,7 @@ logprob_fn, grad_fn = gradients.logprob_and_grad_estimator(
 
 # 2. SGLD baseline
 ### specify hyperparameters for SGLD
-total_iter = 20_000
+total_iter = 40_000
 
 
 temperature = 50
@@ -191,11 +191,10 @@ scaled_energy_pdf = (state.energy_pdf / state.energy_pdf.max())  # state.energy_
 normalized_energy_pdf = (scaled_energy_pdf**zeta) / (scaled_energy_pdf**zeta).sum()
 
 # pick important partitions and ignore the rest
-non_trivial_idx = jnp.where(normalized_energy_pdf > jnp.quantile(normalized_energy_pdf, 0.99))[0]
+non_trivial_idx = jnp.where(normalized_energy_pdf > jnp.quantile(normalized_energy_pdf, 0.95))[0]
 scaled_density = normalized_energy_pdf / normalized_energy_pdf[non_trivial_idx].max()
 
 csgld_re_sample_list = jnp.array([])
-rng_key, subkey = jax.random.split(rng_key)
 for my_idx in non_trivial_idx:
     if jax.random.bernoulli(rng_key, p=scaled_density[my_idx], shape=None) == 1:
         samples_in_my_idx = csgld_sample_list[csgld_energy_idx_list == my_idx]
