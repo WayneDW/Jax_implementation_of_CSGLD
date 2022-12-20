@@ -217,11 +217,10 @@ plt.close()
 
 # 3.3 Analyze why CSGLD works
 
-plt.plot(np.range(num_partitions), state.energy_pdf)
+plt.plot(jnp.arange(num_partitions), state.energy_pdf)
 plt.xlabel(f'Partition index')
 plt.ylabel('Density')
 plt.legend()
-plt.xlim(left=-15, right=35)
 plt.title('Normalized energy PDF')
 plt.savefig(f'./howto_use_csgld_CSGLD_energy_pdf_T{temperature}_zeta{zeta}_iter{total_iter}_sz{sz}_seed{mySeed}_v2.pdf')
 plt.close()
