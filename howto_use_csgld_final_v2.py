@@ -124,10 +124,10 @@ zeta = 2
 sz = 10
 
 ### The following parameters partition the energy space and no tuning is needed. 
-num_partitions = 50000
+num_partitions = 100000
 energy_gap = 0.25
 domain_radius = 50 # restart sampling when the particle explores too deep. e.g. loglikelihood_fn(80, 5)=-inf
-min_energy = 3000 # an estimate of the minimum energy, should be strictly lower than the exact one.
+min_energy = 0 # an estimate of the minimum energy, should be strictly lower than the exact one.
 
 csgld = blackjax.csgld(
     logprob_fn,
