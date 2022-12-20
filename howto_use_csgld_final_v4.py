@@ -40,15 +40,10 @@ init_position = 10.
 def logprior_fn(position):
     return 0
 
-#def loglikelihood_fn(position, x):
-#    loglikelihood_fn_1 = jax.scipy.stats.multivariate_normal.logpdf(x, position, sigma**2)
-#    loglikelihood_fn_2 = jax.scipy.stats.multivariate_normal.logpdf(x, -position + gamma, sigma**2)
-#    return jsp.special.logsumexp(jnp.array([loglikelihood_fn_1, loglikelihood_fn_2])) + jnp.log(0.5)
-
 def loglikelihood_fn(position, x):
-    mixture_1 = jax.scipy.stats.norm.pdf(x, loc=position, scale=sigma)
-    mixture_2 = jax.scipy.stats.norm.pdf(x, loc=-position + gamma, scale=sigma)
-    return jnp.log(0.5 * mixture_1 + 0.5 * mixture_2).sum()
+    loglikelihood_fn_1 = jax.scipy.stats.multivariate_normal.logpdf(x, position, sigma**2)
+    loglikelihood_fn_2 = jax.scipy.stats.multivariate_normal.logpdf(x, -position + gamma, sigma**2)
+    return jsp.special.logsumexp(jnp.array([loglikelihood_fn_1, loglikelihood_fn_2])) + jnp.log(0.5)
 
 ### compute the energy function
 def energy_fn(position, minibatch):
@@ -126,13 +121,13 @@ class CSGLDState(NamedTuple):
 
 
 ### specify hyperparameters (zeta and sz are the only two hyperparameters to tune)
-zeta = 2
+zeta = 2 
 sz = 10
 
 ### The following parameters partition the energy space and no tuning is needed. 
 num_partitions = 100000
 energy_gap = 0.25
-min_energy = 3500 # an estimate of the minimum energy, should be strictly lower than the exact one.
+min_energy = 0 # an estimate of the minimum energy, should be strictly lower than the exact one.
 
 csgld = blackjax.csgld(
     logprob_fn,
@@ -145,40 +140,11 @@ csgld = blackjax.csgld(
 )
 
 ## 3.1 Simulate via the CSGLD algorithm
-
-state = csgld.init(init_position)
-domain_radius = 50
-re_start_counter = 0 # in case the particle goes beyond the domain
-csgld_sample_list, csgld_energy_idx_list = jnp.array([]), jnp.array([])
-for iter_ in range(total_iter):
-    rng_key, subkey = jax.random.split(rng_key)
-    stepsize_SA = min(1e-2, (iter_+100)**(-0.8)) * sz
-
-    data_batch = jax.random.shuffle(rng_key, X_data)[:batch_size, :]
-    state = jax.jit(csgld.step)(subkey, state, data_batch, lr, stepsize_SA)
-    if jnp.abs(state.position) > domain_radius:
-        re_start_counter += 1
-        state = CSGLDState(jax.random.uniform(rng_key, minval=-domain_radius, maxval=domain_radius), \
-                           state.energy_pdf, \
-                           state.energy_idx)
-
-    if iter_ % thinning_factor == 0:
-        energy_value = energy_fn(state.position, data_batch)
-        csgld_sample_list = jnp.append(csgld_sample_list, state.position)
-        ### For re-sampling only.
-        idx = jax.lax.min(jax.lax.max(jax.lax.floor((energy_value - min_energy) / energy_gap + 1).astype("int32"), 1,), num_partitions - 1,)
-        csgld_energy_idx_list = jnp.append(csgld_energy_idx_list, idx)
-        print(f'iter {iter_/1000:.0f}k/{total_iter/1000:.0f}k position {state.position: .2f} energy {energy_value: .2f} re-restart counter {re_start_counter}')
-
-
-
-
-
-
-'''
 state = csgld.init(init_position)
 
 csgld_sample_list, csgld_energy_idx_list = jnp.array([]), jnp.array([])
+
+energy_history = {}
 for iter_ in range(total_iter):
     rng_key, subkey = jax.random.split(rng_key)
     stepsize_SA = min(1e-2, (iter_+100)**(-0.8)) * sz
@@ -193,7 +159,9 @@ for iter_ in range(total_iter):
         idx = jax.lax.min(jax.lax.max(jax.lax.floor((energy_value - min_energy) / energy_gap + 1).astype("int32"), 1,), num_partitions - 1,)
         csgld_energy_idx_list = jnp.append(csgld_energy_idx_list, idx)
         print(f'iter {iter_/1000:.0f}k/{total_iter/1000:.0f}k position {state.position: .2f} energy {energy_value: .2f}')
-'''
+        if iter_ % 10000 == 0:
+            energy_history[iter_] = state.energy_pdf
+
 ### Make plots for CSGLD trajectory
 plt.plot(csgld_sample_list, label='CSGLD')
 #plt.plot(sgld_sample_list, label='SGLD')
@@ -217,14 +185,8 @@ plt.close()
 
 # 3.2 Re-sampling via importance sampling (state.energy_pdf ** zeta)
 # ==============================================================================================================
-# pick important partitions and ignore the rest
-#important_idx = jnp.where(state.energy_pdf > jnp.quantile(state.energy_pdf, 0.95))[0]
-#scaled_energy_pdf = state.energy_pdf[important_idx]**zeta / (state.energy_pdf[important_idx]**zeta).max()
-
-scaled_energy = state.energy_pdf / state.energy_pdf.max() # state.energy_pdf ** zeta is not stable
-normalized_energy_pdf = (scaled_energy**zeta) / (scaled_energy**zeta).sum()
-important_idx = jnp.where(normalized_energy_pdf > jnp.quantile(normalized_energy_pdf, 0.95))[0]
-scaled_energy_pdf = normalized_energy_pdf / normalized_energy_pdf[important_idx].max()
+important_idx = jnp.where(state.energy_pdf > jnp.quantile(state.energy_pdf, 0.95))[0]
+scaled_energy_pdf = state.energy_pdf[important_idx]**zeta / (state.energy_pdf[important_idx]**zeta).max()
 
 csgld_re_sample_list = jnp.array([])
 for _ in range(5):
@@ -248,28 +210,29 @@ plt.close()
 
 
 # 3.3 Analyze why CSGLD works
-interested_idx = jnp.arange(5000, 30000)
+for iters in energy_history:
+    energy_pdf = energy_history[iters]
+    interested_idx = jnp.arange(15000, 30000)
 
-plt.plot(jnp.arange(num_partitions)[interested_idx]*energy_gap, state.energy_pdf[interested_idx])
-plt.xlabel(f'Energy / Partition index (x4)')
-plt.ylabel('Density')
-plt.legend()
-plt.title('Normalized energy PDF')
-plt.savefig(f'./howto_use_csgld_CSGLD_energy_pdf_T{temperature}_zeta{zeta}_iter{total_iter}_sz{sz}_seed{mySeed}_v2.pdf')
-plt.close()
+    plt.plot(jnp.arange(num_partitions)[interested_idx]*energy_gap, energy_pdf[interested_idx])
+    plt.xlabel(f'Energy / Partition index (x4)')
+    plt.ylabel('Density')
+    plt.title('Normalized energy PDF')
+    plt.savefig(f'./howto_use_csgld_CSGLD_energy_pdf_T{temperature}_zeta{zeta}_iter{total_iter}_sz{sz}_seed{mySeed}_v2_iter_{iters}.pdf')
+    plt.close()
 
 
-## Empirical learning rates for CSGLD in various energy partitions
+    ## Empirical learning rates for CSGLD in various energy partitions
 
-# follow Eq.(8) in https://proceedings.neurips.cc/paper/2020/file/b5b8c484824d8a06f4f3d570bc420313-Paper.pdf
-gradient_multiplier = 1 + zeta * temperature * jnp.diff(jnp.log(state.energy_pdf)) / energy_gap
+    # follow Eq.(8) in https://proceedings.neurips.cc/paper/2020/file/b5b8c484824d8a06f4f3d570bc420313-Paper.pdf
+    gradient_multiplier = 1 + zeta * temperature * jnp.diff(jnp.log(energy_pdf)) / energy_gap
 
-plt.plot(jnp.arange(num_partitions)[interested_idx]*energy_gap, gradient_multiplier[interested_idx])
-plt.xlabel(f'Energy')
-plt.ylabel('Gradient multiplier')
-plt.legend()
-plt.title('Gradient multiplier in different partitions')
-plt.savefig(f'./howto_use_csgld_CSGLD_empirical_learning_rate_T{temperature}_zeta{zeta}_iter{total_iter}_sz{sz}_seed{mySeed}_v2.pdf')
-plt.close()
+    plt.plot(jnp.arange(num_partitions)[interested_idx]*energy_gap, gradient_multiplier[interested_idx])
+    plt.xlabel(f'Energy')
+    plt.ylabel('Empirical learning rates')
+    plt.legend()
+    plt.title('Empirical learning rates in different partitions')
+    plt.savefig(f'./howto_use_csgld_CSGLD_empirical_learning_rate_T{temperature}_zeta{zeta}_iter{total_iter}_sz{sz}_seed{mySeed}_v2_iter_{iters}.pdf')
+    plt.close()
 
 
