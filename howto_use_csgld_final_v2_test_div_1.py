@@ -61,7 +61,7 @@ logprob_fn, grad_fn = gradients.logprob_and_grad_estimator(
 
 # 2. SGLD baseline
 ### specify hyperparameters for SGLD
-total_iter = 40_000
+total_iter = 20_000
 
 
 temperature = 50
@@ -217,9 +217,7 @@ plt.close()
 
 # 3.3 Analyze why CSGLD works
 
-print(normalized_energy_pdf)
-
-plt.plot(scaled_density)
+plt.plot(state.energy_pdf)
 plt.xlabel(f'Partition index')
 plt.ylabel('Density')
 plt.legend()
