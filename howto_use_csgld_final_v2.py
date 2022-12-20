@@ -216,8 +216,9 @@ plt.close()
 
 
 # 3.3 Analyze why CSGLD works
+interested_idx = jnp.arange(15000, 30000)
 
-plt.plot(jnp.arange(num_partitions)*energy_gap, state.energy_pdf)
+plt.plot(jnp.arange(num_partitions)[interested_idx]*energy_gap, state.energy_pdf[interested_idx])
 plt.xlabel(f'Energy / Partition index (x4)')
 plt.ylabel('Density')
 plt.legend()
