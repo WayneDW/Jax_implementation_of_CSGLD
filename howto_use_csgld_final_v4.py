@@ -62,7 +62,7 @@ logprob_fn, grad_fn = gradients.logprob_and_grad_estimator(
 
 # 2. SGLD baseline
 ### specify hyperparameters for SGLD
-total_iter = 40_000
+total_iter = 100_000
 
 
 temperature = 50
@@ -207,7 +207,7 @@ plt.close()
 
 
 # 3.3 Analyze why CSGLD works
-interested_idx = jnp.arange(15000, 30000)
+interested_idx = jnp.arange(5000, 30000)
 
 plt.plot(jnp.arange(num_partitions)[interested_idx]*energy_gap, state.energy_pdf[interested_idx])
 plt.xlabel(f'Energy / Partition index (x4)')
@@ -225,9 +225,9 @@ gradient_multiplier = 1 + zeta * temperature * jnp.diff(jnp.log(state.energy_pdf
 
 plt.plot(jnp.arange(num_partitions)[interested_idx]*energy_gap, gradient_multiplier[interested_idx])
 plt.xlabel(f'Energy')
-plt.ylabel('Empirical learning rates')
+plt.ylabel('Gradient multiplier')
 plt.legend()
-plt.title('Empirical learning rates in different partitions')
+plt.title('Gradient multiplier in different partitions')
 plt.savefig(f'./howto_use_csgld_CSGLD_empirical_learning_rate_T{temperature}_zeta{zeta}_iter{total_iter}_sz{sz}_seed{mySeed}_v2.pdf')
 plt.close()
 
