@@ -40,10 +40,16 @@ init_position = 10.
 def logprior_fn(position):
     return 0
 
+#def loglikelihood_fn(position, x):
+#    loglikelihood_fn_1 = jax.scipy.stats.multivariate_normal.logpdf(x, position, sigma**2)
+#    loglikelihood_fn_2 = jax.scipy.stats.multivariate_normal.logpdf(x, -position + gamma, sigma**2)
+#    return jsp.special.logsumexp(jnp.array([loglikelihood_fn_1, loglikelihood_fn_2])) + jnp.log(0.5)
+
 def loglikelihood_fn(position, x):
-    loglikelihood_fn_1 = jax.scipy.stats.multivariate_normal.logpdf(x, position, sigma**2)
-    loglikelihood_fn_2 = jax.scipy.stats.multivariate_normal.logpdf(x, -position + gamma, sigma**2)
-    return jsp.special.logsumexp(jnp.array([loglikelihood_fn_1, loglikelihood_fn_2])) + jnp.log(0.5)
+    mixture_1 = jax.scipy.stats.norm.pdf(x, loc=position, scale=sigma)
+    mixture_2 = jax.scipy.stats.norm.pdf(x, loc=-position + gamma, scale=sigma)
+    return jnp.log(0.5 * mixture_1 + 0.5 * mixture_2).sum()
+
 
 ### compute the energy function
 def energy_fn(position, minibatch):
