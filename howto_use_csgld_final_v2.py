@@ -195,7 +195,7 @@ non_trivial_idx = jnp.where(normalized_energy_pdf > jnp.quantile(normalized_ener
 scaled_density = normalized_energy_pdf / normalized_energy_pdf[non_trivial_idx].max()
 
 csgld_re_sample_list = jnp.array([])
-for _ in range(3):
+for _ in range(5):
     rng_key, subkey = jax.random.split(rng_key)
     for my_idx in non_trivial_idx:
         if jax.random.bernoulli(rng_key, p=scaled_density[my_idx], shape=None) == 1:
@@ -217,7 +217,7 @@ plt.close()
 
 # 3.3 Analyze why CSGLD works
 
-plt.plot(normalized_energy_pdf)
+plt.plot(scaled_density)
 plt.xlabel(f'Partition index')
 plt.ylabel('Density')
 plt.legend()
