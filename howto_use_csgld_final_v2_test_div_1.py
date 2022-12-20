@@ -217,7 +217,7 @@ plt.close()
 
 # 3.3 Analyze why CSGLD works
 
-plt.plot(state.energy_pdf)
+plt.plot(np.range(num_partitions), state.energy_pdf)
 plt.xlabel(f'Partition index')
 plt.ylabel('Density')
 plt.legend()
