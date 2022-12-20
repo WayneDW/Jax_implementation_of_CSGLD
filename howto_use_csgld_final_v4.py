@@ -67,7 +67,7 @@ logprob_fn, grad_fn = gradients.logprob_and_grad_estimator(
 
 # 2. SGLD baseline
 ### specify hyperparameters for SGLD
-total_iter = 100_000
+total_iter = 40_000
 
 
 temperature = 50
@@ -221,7 +221,8 @@ plt.close()
 #important_idx = jnp.where(state.energy_pdf > jnp.quantile(state.energy_pdf, 0.95))[0]
 #scaled_energy_pdf = state.energy_pdf[important_idx]**zeta / (state.energy_pdf[important_idx]**zeta).max()
 
-normalized_energy_pdf = (state.energy_pdf**zeta) / (state.energy_pdf**zeta).sum()
+scaled_energy = state.energy_pdf / state.energy_pdf.max() # state.energy_pdf ** zeta is not stable
+normalized_energy_pdf = (scaled_energy**zeta) / (scaled_energy**zeta).sum()
 important_idx = jnp.where(normalized_energy_pdf > jnp.quantile(normalized_energy_pdf, 0.95))[0]
 scaled_energy_pdf = normalized_energy_pdf / normalized_energy_pdf[important_idx].max()
 
