@@ -229,9 +229,9 @@ plt.close()
 ## Empirical learning rates for CSGLD in various energy partitions
 
 # follow Eq.(8) in https://proceedings.neurips.cc/paper/2020/file/b5b8c484824d8a06f4f3d570bc420313-Paper.pdf
-empirical_learning_rate = 1 + zeta * temperature * jnp.diff(state.energy_pdf) / energy_gap
+gradient_multiplier = 1 + zeta * temperature * jnp.diff(jnp.log(state.energy_pdf)) / energy_gap
 
-plt.plot(jnp.arange(num_partitions)[interested_idx]*energy_gap, empirical_learning_rate[interested_idx])
+plt.plot(jnp.arange(num_partitions)[interested_idx]*energy_gap, gradient_multiplier[interested_idx])
 plt.xlabel(f'Energy')
 plt.ylabel('Empirical learning rates')
 plt.legend()
