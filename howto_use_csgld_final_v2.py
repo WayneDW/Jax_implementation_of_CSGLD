@@ -187,8 +187,7 @@ plt.close()
 
 # 3.2 Re-sampling via importance sampling (state.energy_pdf ** zeta)
 # ==============================================================================================================
-scaled_energy_pdf = (state.energy_pdf / state.energy_pdf.max())  # state.energy_pdf ** zeta is not stable
-normalized_energy_pdf = (scaled_energy_pdf**zeta) / (scaled_energy_pdf**zeta).sum()
+normalized_energy_pdf = (state.energy_pdf**zeta) / (state.energy_pdf**zeta).sum()
 
 # pick important partitions and ignore the rest
 non_trivial_idx = jnp.where(normalized_energy_pdf > jnp.quantile(normalized_energy_pdf, 0.95))[0]
@@ -216,7 +215,7 @@ plt.close()
 
 
 # 3.3 Analyze why CSGLD works
-interested_idx = jnp.arange(14500, 30000)
+interested_idx = jnp.arange(15000, 30000)
 
 plt.plot(jnp.arange(num_partitions)[interested_idx]*energy_gap, state.energy_pdf[interested_idx])
 plt.xlabel(f'Energy / Partition index (x4)')
@@ -225,3 +224,19 @@ plt.legend()
 plt.title('Normalized energy PDF')
 plt.savefig(f'./howto_use_csgld_CSGLD_energy_pdf_T{temperature}_zeta{zeta}_iter{total_iter}_sz{sz}_seed{mySeed}_v2.pdf')
 plt.close()
+
+
+## Empirical learning rates for CSGLD in various energy partitions
+
+# follow Eq.(8) in https://proceedings.neurips.cc/paper/2020/file/b5b8c484824d8a06f4f3d570bc420313-Paper.pdf
+empirical_learning_rate = 1 + zeta * temperature * jnp.diff(state.energy_pdf) / energy_gap
+
+plt.plot(jnp.arange(num_partitions)[interested_idx]*energy_gap, empirical_learning_rate[interested_idx])
+plt.xlabel(f'Energy')
+plt.ylabel('Empirical learning rates')
+plt.legend()
+plt.title('Empirical learning rates in different partitions')
+plt.savefig(f'./howto_use_csgld_CSGLD_empirical_learning_rate_T{temperature}_zeta{zeta}_iter{total_iter}_sz{sz}_seed{mySeed}_v2.pdf')
+plt.close()
+
+
