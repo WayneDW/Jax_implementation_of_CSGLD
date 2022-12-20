@@ -142,7 +142,6 @@ csgld = blackjax.csgld(
 ## 3.1 Simulate via the CSGLD algorithm
 state = csgld.init(init_position)
 
-re_start_counter = 0 # in case the particle goes beyond the domain
 csgld_sample_list, csgld_energy_idx_list = jnp.array([]), jnp.array([])
 for iter_ in range(total_iter):
     rng_key, subkey = jax.random.split(rng_key)
@@ -182,17 +181,14 @@ plt.close()
 
 # 3.2 Re-sampling via importance sampling (state.energy_pdf ** zeta)
 # ==============================================================================================================
-normalized_energy_pdf = (state.energy_pdf**zeta) / (state.energy_pdf**zeta).sum()
-
-# pick important partitions and ignore the rest
-non_trivial_idx = jnp.where(normalized_energy_pdf > jnp.quantile(normalized_energy_pdf, 0.95))[0]
-scaled_density = normalized_energy_pdf / normalized_energy_pdf[non_trivial_idx].max()
+important_idx = jnp.where(state.energy_pdf > jnp.quantile(state.energy_pdf, 0.95))[0]
+scaled_energy_pdf = state.energy_pdf[important_idx]**zeta / (state.energy_pdf[important_idx]**zeta).max()
 
 csgld_re_sample_list = jnp.array([])
 for _ in range(5):
     rng_key, subkey = jax.random.split(rng_key)
-    for my_idx in non_trivial_idx:
-        if jax.random.bernoulli(rng_key, p=scaled_density[my_idx], shape=None) == 1:
+    for my_idx in important_idx:
+        if jax.random.bernoulli(rng_key, p=scaled_energy_pdf[my_idx], shape=None) == 1:
             samples_in_my_idx = csgld_sample_list[csgld_energy_idx_list == my_idx]
             csgld_re_sample_list = jnp.concatenate(
                 (csgld_re_sample_list, samples_in_my_idx)
