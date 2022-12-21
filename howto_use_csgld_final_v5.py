@@ -20,7 +20,7 @@ rng_key, data_key0, data_key1, data_key2 = jax.random.split(rng_key, 4)
 
 ### specify data and batch size 
 data_size = 1000
-batch_size = 1000
+batch_size = 100
 
 
 ### create a data that follows a Gaussian mixture distribution
@@ -62,11 +62,11 @@ logprob_fn, grad_fn = gradients.logprob_and_grad_estimator(
 
 # 2. SGLD baseline
 ### specify hyperparameters for SGLD
-total_iter = 20_005
+total_iter = 40_005
 
 
 temperature = 50
-lr = 5e-3
+lr = 1e-3
 thinning_factor = 100
 
 
@@ -87,9 +87,9 @@ for iter_ in range(total_iter):
     rng_key, subkey = jax.random.split(rng_key)
     data_batch = jax.random.shuffle(rng_key, X_data)[: batch_size, :]
     state = jax.jit(sgld.step)(subkey, state, data_batch, lr, 0)
-    energy_value = energy_fn(state.position, data_batch)
-    min_energy_value = min(min_energy_value, energy_value)
     if iter_ % thinning_factor == 0:
+        energy_value = energy_fn(state.position, data_batch)
+        min_energy_value = min(min_energy_value, energy_value)
         sgld_sample_list = jnp.append(sgld_sample_list, state.position)
         
         print(f'iter {iter_/1000:.0f}k/{total_iter/1000:.0f}k position {state.position: .2f} energy {energy_value: .2f} min {min_energy_value: .2f}')
@@ -124,13 +124,13 @@ class CSGLDState(NamedTuple):
 
 
 ### specify hyperparameters (zeta and sz are the only two hyperparameters to tune)
-zeta = 5
-sz = 3
+zeta = 2
+sz = 10
 
 ### The following parameters partition the energy space and no tuning is needed. 
-num_partitions = 2000
-energy_gap = 5
-min_energy = 3681 # an estimate of the minimum energy, should be strictly lower than the exact one. !!!!!!!! more comment needed
+num_partitions = 100000
+energy_gap = 0.25
+min_energy = 3000 #81 # an estimate of the minimum energy, should be strictly lower than the exact one. !!!!!!!! more comment needed
 
 csgld = blackjax.csgld(
     logprob_fn,
@@ -157,13 +157,9 @@ for iter_ in range(total_iter):
         energy_value = energy_fn(state.position, data_batch)
         csgld_sample_list = jnp.append(csgld_sample_list, state.position)
         ### For re-sampling only.
-        idx = jax.lax.min(
-            jax.lax.floor((energy_value - min_energy) / energy_gap).astype("int32"),
-            num_partitions - 2,
-        )
-        grad_mul = 1 + zeta * temperature * (jnp.log(state.energy_pdf[idx+1]) - jnp.log(state.energy_pdf[idx])) / energy_gap
+        idx = jax.lax.min(jax.lax.max(jax.lax.floor((energy_value - min_energy) / energy_gap + 1).astype("int32"), 1,), num_partitions - 1, )
         csgld_energy_idx_list = jnp.append(csgld_energy_idx_list, idx)
-        print(f'iter {iter_/1000:.0f}k/{total_iter/1000:.0f}k position {state.position: .2f} energy {energy_value: .2f} grad mul {grad_mul: .2f} idx {idx}')
+        print(f'iter {iter_/1000:.0f}k/{total_iter/1000:.0f}k position {state.position: .2f} energy {energy_value: .2f} idx {idx}')
         if iter_ % 20000 == 0 and iter_ > 0:
             energy_history[iter_] = state.energy_pdf
 
@@ -217,9 +213,13 @@ plt.close()
 # 3.3 Analyze why CSGLD works
 for iters in energy_history:
     energy_pdf = energy_history[iters]
-    interested_idx = jnp.arange(0, int(2000/energy_gap))
+    kernel_size = 10
+    kernel = jnp.ones(kernel_size) / kernel_size
+    smooth_energy_pdf = jnp.convolve(energy_pdf, kernel, mode='same')
 
-    plt.plot(jnp.arange(num_partitions)[interested_idx]*energy_gap, energy_pdf[interested_idx])
+    interested_idx = jnp.arange(0, int(1000/energy_gap))
+
+    plt.plot(jnp.arange(num_partitions)[interested_idx]*energy_gap, smooth_energy_pdf[interested_idx])
     plt.xlabel(f'Energy / Partition index (x4)')
     plt.ylabel('Density')
     plt.title('Normalized energy PDF')
@@ -230,7 +230,7 @@ for iters in energy_history:
     ## Empirical learning rates for CSGLD in various energy partitions
 
     # follow Eq.(8) in https://proceedings.neurips.cc/paper/2020/file/b5b8c484824d8a06f4f3d570bc420313-Paper.pdf
-    gradient_multiplier = 1 + zeta * temperature * jnp.diff(jnp.log(energy_pdf)) / energy_gap
+    gradient_multiplier = 1 + zeta * temperature * jnp.diff(jnp.log(smooth_energy_pdf)) / energy_gap
 
     plt.plot(jnp.arange(num_partitions)[interested_idx]*energy_gap, gradient_multiplier[interested_idx], label='CSGLD')
     plt.plot(jnp.arange(num_partitions)[interested_idx]*energy_gap, jnp.array([1.] * len(interested_idx)), label='SGLD')
