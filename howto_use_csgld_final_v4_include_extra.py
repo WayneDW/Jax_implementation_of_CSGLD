@@ -62,7 +62,7 @@ logprob_fn, grad_fn = gradients.logprob_and_grad_estimator(
 
 # 2. SGLD baseline
 ### specify hyperparameters for SGLD
-total_iter = 100_000
+total_iter = 40_000
 
 
 temperature = 50
@@ -82,14 +82,17 @@ sgld = blackjax.csgld(
 ### Initialize and take one step using the vanilla SGLD algorithm
 state = sgld.init(init_position)
 sgld_sample_list = jnp.array([])
+min_energy_value = jnp.inf
 for iter_ in range(total_iter):
     rng_key, subkey = jax.random.split(rng_key)
     data_batch = jax.random.shuffle(rng_key, X_data)[: batch_size, :]
     state = jax.jit(sgld.step)(subkey, state, data_batch, lr, 0)
+    energy_value = energy_fn(state.position, data_batch)
+    min_energy_value = min(min_energy_value, energy_value)
     if iter_ % thinning_factor == 0:
-        energy_value = energy_fn(state.position, data_batch)
         sgld_sample_list = jnp.append(sgld_sample_list, state.position)
-        print(f'iter {iter_/1000:.0f}k/{total_iter/1000:.0f}k position {state.position: .2f}')
+        
+        print(f'iter {iter_/1000:.0f}k/{total_iter/1000:.0f}k position {state.position: .2f} energy {energy_value: .2f} min {min_energy_value: .2f}')
 
 
 ### Make plots for SGLD trajectory
@@ -125,9 +128,9 @@ zeta = 1
 sz = 1
 
 ### The following parameters partition the energy space and no tuning is needed. 
-num_partitions = 15000
-energy_gap = 2.5
-min_energy = 0 # an estimate of the minimum energy, should be strictly lower than the exact one.
+num_partitions = 1000
+energy_gap = 10
+min_energy = 3651 # an estimate of the minimum energy, should be strictly lower than the exact one.
 
 csgld = blackjax.csgld(
     logprob_fn,
@@ -157,9 +160,13 @@ for iter_ in range(total_iter):
         csgld_sample_list = jnp.append(csgld_sample_list, state.position)
         ### For re-sampling only.
         idx = jax.lax.min(jax.lax.max(jax.lax.floor((energy_value - min_energy) / energy_gap + 1).astype("int32"), 1,), num_partitions - 1,)
+
+        #print('check gradient !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+        grad_mul = 1 + zeta * temperature * (jnp.log(state.energy_pdf[idx]) - jnp.log(state.energy_pdf[idx - 1])) / energy_gap
         csgld_energy_idx_list = jnp.append(csgld_energy_idx_list, idx)
-        print(f'iter {iter_/1000:.0f}k/{total_iter/1000:.0f}k position {state.position: .2f} energy {energy_value: .2f}')
-        if iter_ % 10000 == 0:
+        if idx != 4:
+            print(f'iter {iter_/1000:.0f}k/{total_iter/1000:.0f}k position {state.position: .2f} energy {energy_value: .2f} grad mul {grad_mul: .2f} idx {idx}')
+        if iter_ % 50000 == 0:
             energy_history[iter_] = state.energy_pdf
 
 ### Make plots for CSGLD trajectory
