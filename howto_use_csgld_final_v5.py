@@ -62,7 +62,7 @@ logprob_fn, grad_fn = gradients.logprob_and_grad_estimator(
 
 # 2. SGLD baseline
 ### specify hyperparameters for SGLD
-total_iter = 10_000
+total_iter = 500_000
 
 
 temperature = 50
@@ -229,17 +229,3 @@ plt.legend()
 plt.title('Gradient multipliers in different partitions')
 plt.savefig(f'./howto_use_csgld_CSGLD_empirical_learning_rate_T{temperature}_zeta{zeta}_iter{total_iter}_sz{sz}_seed{mySeed}_kernel_{kernel_scale}_v2.pdf')
 plt.close()
-
-
-
-smooth_energy_pdf_v2 = jnp.convolve(state.energy_pdf[interested_idx], jnp.ones(kernel_scale) / kernel_scale, mode='same')
-gradient_multiplier = 1 + zeta * temperature * jnp.diff(jnp.log(smooth_energy_pdf_v2)) / energy_gap
-plt.plot(jnp.arange(num_partitions)[interested_idx][1:]*energy_gap, gradient_multiplier, label='CSGLD')
-plt.plot(jnp.arange(num_partitions)[interested_idx][1:]*energy_gap, jnp.array([1.] * len(gradient_multiplier)), label='SGLD')
-plt.xlabel(f'Energy')
-plt.ylabel('Gradient multiplier')
-plt.legend()
-plt.title('Gradient multipliers in different partitions')
-plt.savefig(f'./howto_use_csgld_CSGLD_empirical_learning_rate_T{temperature}_zeta{zeta}_iter{total_iter}_sz{sz}_seed{mySeed}_kernel_{kernel_scale}_v3.pdf')
-plt.close()
-
