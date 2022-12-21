@@ -62,7 +62,7 @@ logprob_fn, grad_fn = gradients.logprob_and_grad_estimator(
 
 # 2. SGLD baseline
 ### specify hyperparameters for SGLD
-total_iter = 100_005
+total_iter = 10_005
 
 
 temperature = 50
@@ -208,7 +208,7 @@ plt.close()
 
 
 # 3.3 Analyze why CSGLD works
-smooth_energy_pdf = jnp.convolve(energy_pdf, jsp.stats.norm.pdf(jnp.arange(-100, 101), scale=50), mode='same')
+smooth_energy_pdf = jnp.convolve(state.energy_pdf, jsp.stats.norm.pdf(jnp.arange(-100, 101), scale=50), mode='same')
 interested_idx = jnp.arange(0, int(10000/energy_gap))
 plt.plot(jnp.arange(num_partitions)[interested_idx]*energy_gap, smooth_energy_pdf[interested_idx])
 plt.xlabel(f'Energy / Partition index (x4)')
