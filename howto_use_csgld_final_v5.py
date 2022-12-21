@@ -130,7 +130,7 @@ sz = 3
 ### The following parameters partition the energy space and no tuning is needed. 
 num_partitions = 2000
 energy_gap = 5
-min_energy = 3681 # an estimate of the minimum energy, should be strictly lower than the exact one.
+min_energy = 3681 # an estimate of the minimum energy, should be strictly lower than the exact one. !!!!!!!! more comment needed
 
 csgld = blackjax.csgld(
     logprob_fn,
