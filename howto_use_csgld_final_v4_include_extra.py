@@ -66,7 +66,7 @@ total_iter = 50_005
 
 
 temperature = 50
-lr = 1e-3
+lr = 2e-3
 thinning_factor = 100
 
 
@@ -125,7 +125,7 @@ class CSGLDState(NamedTuple):
 
 ### specify hyperparameters (zeta and sz are the only two hyperparameters to tune)
 zeta = 5
-sz = 5
+sz = 4
 
 ### The following parameters partition the energy space and no tuning is needed. 
 num_partitions = 2000
@@ -217,7 +217,7 @@ plt.close()
 # 3.3 Analyze why CSGLD works
 for iters in energy_history:
     energy_pdf = energy_history[iters]
-    interested_idx = jnp.arange(0, 30000)
+    interested_idx = jnp.arange(0, int(2000/energy_gap))
 
     plt.plot(jnp.arange(num_partitions)[interested_idx]*energy_gap, energy_pdf[interested_idx])
     plt.xlabel(f'Energy / Partition index (x4)')
