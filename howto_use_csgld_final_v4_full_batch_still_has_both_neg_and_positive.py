@@ -70,7 +70,7 @@ lr = 1e-3
 thinning_factor = 100
 
 
-'''
+#'''
 """ SGLD module (CSGLD with zeta=0 is equivalent to SGLD, if you have a better way to use SGLD, feel free to use that one) """
 sgld = blackjax.csgld(
     logprob_fn,
@@ -82,14 +82,16 @@ sgld = blackjax.csgld(
 ### Initialize and take one step using the vanilla SGLD algorithm
 state = sgld.init(init_position)
 sgld_sample_list = jnp.array([])
+min_energy_value = jnp.inf
 for iter_ in range(total_iter):
     rng_key, subkey = jax.random.split(rng_key)
     data_batch = jax.random.shuffle(rng_key, X_data)[: batch_size, :]
     state = jax.jit(sgld.step)(subkey, state, data_batch, lr, 0)
     if iter_ % thinning_factor == 0:
         energy_value = energy_fn(state.position, data_batch)
+        min_energy_value = min(min_energy_value, energy_value)
         sgld_sample_list = jnp.append(sgld_sample_list, state.position)
-        print(f'iter {iter_/1000:.0f}k/{total_iter/1000:.0f}k position {state.position: .2f}')
+        print(f'iter {iter_/1000:.0f}k/{total_iter/1000:.0f}k position {state.position: .2f} min {min_energy_value: .2f}')
 
 
 ### Make plots for SGLD trajectory
@@ -110,7 +112,7 @@ plt.xlim(left=-15, right=35)
 plt.title('SGLD distribution')
 plt.savefig(f'./howto_use_csgld_SGLD_distributions_T{temperature}_iter{total_iter}_seed{mySeed}_v2.pdf')
 plt.close()
-'''
+#'''
 
 
 # 3. CSGLD baseline
