@@ -235,7 +235,7 @@ plt.close()
 smooth_energy_pdf_v2 = jnp.convolve(state.energy_pdf[interested_idx], jsp.stats.norm.pdf(jnp.arange(-100, 101), scale=kernel_scale), mode='same')
 gradient_multiplier = 1 + zeta * temperature * jnp.diff(jnp.log(smooth_energy_pdf_v2)) / energy_gap
 plt.plot(jnp.arange(num_partitions)[interested_idx][1:]*energy_gap, gradient_multiplier, label='CSGLD')
-plt.plot(jnp.arange(num_partitions)[interested_idx][1:]*energy_gap, jnp.array([1.] * len(smooth_energy_pdf_v2)), label='SGLD')
+plt.plot(jnp.arange(num_partitions)[interested_idx][1:]*energy_gap, jnp.array([1.] * len(gradient_multiplier)), label='SGLD')
 plt.xlabel(f'Energy')
 plt.ylabel('Gradient multiplier')
 plt.legend()
