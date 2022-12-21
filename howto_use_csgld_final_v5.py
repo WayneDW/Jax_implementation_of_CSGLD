@@ -66,7 +66,7 @@ total_iter = 20_005
 
 
 temperature = 50
-lr = 2e-3
+lr = 5e-3
 thinning_factor = 100
 
 
@@ -125,7 +125,7 @@ class CSGLDState(NamedTuple):
 
 ### specify hyperparameters (zeta and sz are the only two hyperparameters to tune)
 zeta = 5
-sz = 4
+sz = 3
 
 ### The following parameters partition the energy space and no tuning is needed. 
 num_partitions = 2000
