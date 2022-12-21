@@ -208,24 +208,14 @@ plt.close()
 
 
 # 3.3 Analyze why CSGLD works
-kernel_scale = 1
+kernel_scale = 10
+start_left = 3690
 smooth_energy_pdf = jnp.convolve(state.energy_pdf, jsp.stats.norm.pdf(jnp.arange(-100, 101), scale=kernel_scale), mode='same')
-interested_idx = jax.lax.floor((jnp.arange(3760, 10000)) / energy_gap).astype('int32') # min 3681
+interested_idx = jax.lax.floor((jnp.arange(start_left, 10000)) / energy_gap).astype('int32') # min 3681
 plt.plot(jnp.arange(num_partitions)[interested_idx]*energy_gap, smooth_energy_pdf[interested_idx])
 plt.xlabel(f'Energy')
 plt.ylabel('Density')
 plt.title('Normalized energy PDF')
-plt.savefig(f'./howto_use_csgld_CSGLD_energy_pdf_T{temperature}_zeta{zeta}_iter{total_iter}_sz{sz}_seed{mySeed}_kernel_{kernel_scale}_v2.pdf')
+plt.savefig(f'./howto_use_csgld_CSGLD_energy_pdf_T{temperature}_zeta{zeta}_iter{total_iter}_sz{sz}_seed{mySeed}_kernel_{kernel_scale}_v2_start_{start_left}.pdf')
 plt.close()
     
-## Empirical learning rates for CSGLD in various energy partitions
-# follow Eq.(8) in https://proceedings.neurips.cc/paper/2020/file/b5b8c484824d8a06f4f3d570bc420313-Paper.pdf
-gradient_multiplier = 1 + zeta * temperature * jnp.diff(jnp.log(smooth_energy_pdf)) / energy_gap
-plt.plot(jnp.arange(num_partitions)[interested_idx]*energy_gap, gradient_multiplier[interested_idx], label='CSGLD')
-plt.plot(jnp.arange(num_partitions)[interested_idx]*energy_gap, jnp.array([1.] * len(interested_idx)), label='SGLD')
-plt.xlabel(f'Energy')
-plt.ylabel('Gradient multiplier')
-plt.legend()
-plt.title('Gradient multipliers in different partitions')
-plt.savefig(f'./howto_use_csgld_CSGLD_empirical_learning_rate_T{temperature}_zeta{zeta}_iter{total_iter}_sz{sz}_seed{mySeed}_kernel_{kernel_scale}_v2.pdf')
-plt.close()
