@@ -208,13 +208,14 @@ plt.close()
 
 
 # 3.3 Analyze why CSGLD works
-smooth_energy_pdf = state.energy_pdf # jnp.convolve(state.energy_pdf, jsp.stats.norm.pdf(jnp.arange(-100, 101), scale=1), mode='same')
+kernel_scale = 50
+smooth_energy_pdf = jnp.convolve(state.energy_pdf, jsp.stats.norm.pdf(jnp.arange(-100, 101), scale=kernel_scale), mode='same')
 interested_idx = jax.lax.floor((jnp.arange(3700, 10000)) / energy_gap).astype('int32') # min 3681
 plt.plot(jnp.arange(num_partitions)[interested_idx]*energy_gap, smooth_energy_pdf[interested_idx])
 plt.xlabel(f'Energy')
 plt.ylabel('Density')
 plt.title('Normalized energy PDF')
-plt.savefig(f'./howto_use_csgld_CSGLD_energy_pdf_T{temperature}_zeta{zeta}_iter{total_iter}_sz{sz}_seed{mySeed}_v2.pdf')
+plt.savefig(f'./howto_use_csgld_CSGLD_energy_pdf_T{temperature}_zeta{zeta}_iter{total_iter}_sz{sz}_seed{mySeed}_kernel_{kernel_scale}_v2.pdf')
 plt.close()
     
 ## Empirical learning rates for CSGLD in various energy partitions
@@ -226,6 +227,6 @@ plt.xlabel(f'Energy')
 plt.ylabel('Gradient multiplier')
 plt.legend()
 plt.title('Gradient multipliers in different partitions')
-plt.savefig(f'./howto_use_csgld_CSGLD_empirical_learning_rate_T{temperature}_zeta{zeta}_iter{total_iter}_sz{sz}_seed{mySeed}_v2.pdf')
+plt.savefig(f'./howto_use_csgld_CSGLD_empirical_learning_rate_T{temperature}_zeta{zeta}_iter{total_iter}_sz{sz}_seed{mySeed}_kernel_{kernel_scale}_v2.pdf')
 plt.close()
 
