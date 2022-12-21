@@ -62,7 +62,7 @@ logprob_fn, grad_fn = gradients.logprob_and_grad_estimator(
 
 # 2. SGLD baseline
 ### specify hyperparameters for SGLD
-total_iter = 50_005
+total_iter = 20_005
 
 
 temperature = 50
@@ -128,8 +128,8 @@ zeta = 5
 sz = 4
 
 ### The following parameters partition the energy space and no tuning is needed. 
-num_partitions = 4000
-energy_gap = 2.5
+num_partitions = 2000
+energy_gap = 5
 min_energy = 3681 # an estimate of the minimum energy, should be strictly lower than the exact one.
 
 csgld = blackjax.csgld(
@@ -164,7 +164,7 @@ for iter_ in range(total_iter):
         grad_mul = 1 + zeta * temperature * (jnp.log(state.energy_pdf[idx+1]) - jnp.log(state.energy_pdf[idx])) / energy_gap
         csgld_energy_idx_list = jnp.append(csgld_energy_idx_list, idx)
         print(f'iter {iter_/1000:.0f}k/{total_iter/1000:.0f}k position {state.position: .2f} energy {energy_value: .2f} grad mul {grad_mul: .2f} idx {idx}')
-        if iter_ % 50000 == 0 and iter_ > 0:
+        if iter_ % 20000 == 0 and iter_ > 0:
             energy_history[iter_] = state.energy_pdf
 
 ### Make plots for CSGLD trajectory
@@ -232,11 +232,12 @@ for iters in energy_history:
     # follow Eq.(8) in https://proceedings.neurips.cc/paper/2020/file/b5b8c484824d8a06f4f3d570bc420313-Paper.pdf
     gradient_multiplier = 1 + zeta * temperature * jnp.diff(jnp.log(energy_pdf)) / energy_gap
 
-    plt.plot(jnp.arange(num_partitions)[interested_idx]*energy_gap, gradient_multiplier[interested_idx])
+    plt.plot(jnp.arange(num_partitions)[interested_idx]*energy_gap, gradient_multiplier[interested_idx], label='CSGLD')
+    plt.plot(jnp.arange(num_partitions)[interested_idx]*energy_gap, jnp.array([1.] * len(interested_idx)), label='SGLD')
     plt.xlabel(f'Energy')
-    plt.ylabel('Empirical learning rates')
+    plt.ylabel('Gradient multiplier')
     plt.legend()
-    plt.title('Empirical learning rates in different partitions')
+    plt.title('Gradient multipliers in different partitions')
     plt.savefig(f'./howto_use_csgld_CSGLD_empirical_learning_rate_T{temperature}_zeta{zeta}_iter{total_iter}_sz{sz}_seed{mySeed}_v2_iter_{iters}.pdf')
     plt.close()
 
