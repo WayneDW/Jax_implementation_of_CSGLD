@@ -208,7 +208,7 @@ plt.close()
 
 
 # 3.3 Analyze why CSGLD works
-interested_idx = jax.lax.floor((jnp.arange(3700, 10000)) / energy_gap).astype('int32') # min is 3681.
+interested_idx = jax.lax.floor((jnp.arange(3750, 8000)) / energy_gap).astype('int32') # min is 3681.
 smooth_energy_pdf = jnp.convolve(state.energy_pdf[interested_idx], jsp.stats.norm.pdf(jnp.arange(-100, 101), scale=30), mode='same')
 interested_energy = jnp.arange(num_partitions)[interested_idx]*energy_gap
 
