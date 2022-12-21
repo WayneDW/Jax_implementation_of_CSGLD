@@ -128,8 +128,8 @@ zeta = 5
 sz = 4
 
 ### The following parameters partition the energy space and no tuning is needed. 
-num_partitions = 2000
-energy_gap = 5
+num_partitions = 4000
+energy_gap = 2.5
 min_energy = 3681 # an estimate of the minimum energy, should be strictly lower than the exact one.
 
 csgld = blackjax.csgld(
