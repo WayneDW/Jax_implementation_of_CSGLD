@@ -128,8 +128,8 @@ zeta = 5
 sz = 1
 
 ### The following parameters partition the energy space and no tuning is needed. 
-num_partitions = 500
-energy_gap = 20
+num_partitions = 10000
+energy_gap = 1
 min_energy = 3651 # an estimate of the minimum energy, should be strictly lower than the exact one.
 
 csgld = blackjax.csgld(
@@ -159,13 +159,15 @@ for iter_ in range(total_iter):
         energy_value = energy_fn(state.position, data_batch)
         csgld_sample_list = jnp.append(csgld_sample_list, state.position)
         ### For re-sampling only.
-        idx = jax.lax.min(jax.lax.max(jax.lax.floor((energy_value - min_energy) / energy_gap + 1).astype("int32"), 1,), num_partitions - 1,)
+        idx = jax.lax.min(
+            jax.lax.floor((energy_value - min_energy) / energy_gap).astype("int32"),
+            num_partitions - 2,
+        )
 
         #print('check gradient !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-        grad_mul = 1 + zeta * temperature * (jnp.log(state.energy_pdf[idx]) - jnp.log(state.energy_pdf[idx - 1])) / energy_gap
+        grad_mul = 1 + zeta * temperature * (jnp.log(state.energy_pdf[idx+1]) - jnp.log(state.energy_pdf[idx])) / energy_gap
         csgld_energy_idx_list = jnp.append(csgld_energy_idx_list, idx)
-        if idx != 2:
-            print(f'iter {iter_/1000:.0f}k/{total_iter/1000:.0f}k position {state.position: .2f} energy {energy_value: .2f} grad mul {grad_mul: .2f} idx {idx}')
+        print(f'iter {iter_/1000:.0f}k/{total_iter/1000:.0f}k position {state.position: .2f} energy {energy_value: .2f} grad mul {grad_mul: .2f} idx {idx}')
         if iter_ % 50000 == 0:
             energy_history[iter_] = state.energy_pdf
 
