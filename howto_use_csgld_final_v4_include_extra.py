@@ -125,12 +125,12 @@ class CSGLDState(NamedTuple):
 
 ### specify hyperparameters (zeta and sz are the only two hyperparameters to tune)
 zeta = 5
-sz = 1
+sz = 5
 
 ### The following parameters partition the energy space and no tuning is needed. 
-num_partitions = 10000
-energy_gap = 1
-min_energy = 3651 # an estimate of the minimum energy, should be strictly lower than the exact one.
+num_partitions = 2000
+energy_gap = 5
+min_energy = 3681 # an estimate of the minimum energy, should be strictly lower than the exact one.
 
 csgld = blackjax.csgld(
     logprob_fn,
