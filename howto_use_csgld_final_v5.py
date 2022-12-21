@@ -11,6 +11,20 @@ from blackjax.types import Array, PRNGKey, PyTree
 
 import matplotlib.pyplot as plt
 
+'''
+Sampling in big data problems is fundamentally limited by the multi-modality of the target distributions, with extremely high energy barriers. Multi-modality is often empirically solved via cyclical learning rates or different initializations (parallel chains).
+
+Contour SgLD takes a different approach altogether: the algorithms learns the energy landscape with sampling, and uses this approximation to effectively integrate the diffusion on a flat landscape, before using the importance weight to reweigh the obtained samples.
+
+In this notebook we will compare the performance of SGLD and Contour SGLD on a simple bimodal gaussian target. This example looks fundamental, but is rather challenging to solve.
+'''
+
+
+'''
+## The model
+
+Let us first generate data points that follow a gaussian mixture distributions, a relatively simple example yet hard enought for most algorithms to fail to recover the two modes.
+'''
 ### set seeds
 mySeed = 888
 rng_key = jax.random.PRNGKey(mySeed)
@@ -70,7 +84,7 @@ lr = 1e-3
 thinning_factor = 100
 
 
-'''
+
 """ SGLD module (CSGLD with zeta=0 is equivalent to SGLD, if you have a better way to use SGLD, feel free to use that one) """
 sgld = blackjax.csgld(
     logprob_fn,
@@ -113,7 +127,7 @@ plt.xlim(left=-15, right=35)
 plt.title('SGLD distribution')
 plt.savefig(f'./howto_use_csgld_SGLD_distributions_T{temperature}_iter{total_iter}_seed{mySeed}_v2.pdf')
 plt.close()
-'''
+
 
 
 # 3. CSGLD baseline
@@ -162,7 +176,7 @@ for iter_ in range(total_iter):
 
 ### Make plots for CSGLD trajectory
 plt.plot(csgld_sample_list, label='CSGLD')
-#plt.plot(sgld_sample_list, label='SGLD')
+plt.plot(sgld_sample_list, label='SGLD')
 plt.xlabel(f'Iterations (x{thinning_factor})')
 plt.ylabel('X')
 plt.legend()
@@ -208,14 +222,12 @@ plt.close()
 
 
 # 3.3 Analyze why CSGLD works
-kernel_scale = 10
-start_left = 3690
-smooth_energy_pdf = jnp.convolve(state.energy_pdf, jsp.stats.norm.pdf(jnp.arange(-100, 101), scale=kernel_scale), mode='same')
-interested_idx = jax.lax.floor((jnp.arange(start_left, 10000)) / energy_gap).astype('int32') # min 3681
+smooth_energy_pdf = jnp.convolve(state.energy_pdf, jsp.stats.norm.pdf(jnp.arange(-100, 101), scale=10), mode='same')
+interested_idx = jax.lax.floor((jnp.arange(3700, 10000)) / energy_gap).astype('int32') # min 3681
 plt.plot(jnp.arange(num_partitions)[interested_idx]*energy_gap, smooth_energy_pdf[interested_idx])
 plt.xlabel(f'Energy')
 plt.ylabel('Density')
 plt.title('Normalized energy PDF')
-plt.savefig(f'./howto_use_csgld_CSGLD_energy_pdf_T{temperature}_zeta{zeta}_iter{total_iter}_sz{sz}_seed{mySeed}_kernel_{kernel_scale}_v2_start_{start_left}.pdf')
+plt.savefig(f'./howto_use_csgld_CSGLD_energy_pdf_T{temperature}_zeta{zeta}_iter{total_iter}_sz{sz}_seed{mySeed}_v2.pdf')
 plt.close()
     
