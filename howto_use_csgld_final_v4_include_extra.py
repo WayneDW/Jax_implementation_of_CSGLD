@@ -62,7 +62,7 @@ logprob_fn, grad_fn = gradients.logprob_and_grad_estimator(
 
 # 2. SGLD baseline
 ### specify hyperparameters for SGLD
-total_iter = 40_000
+total_iter = 50_005
 
 
 temperature = 50
@@ -151,10 +151,8 @@ energy_history = {}
 for iter_ in range(total_iter):
     rng_key, subkey = jax.random.split(rng_key)
     stepsize_SA = min(1e-2, (iter_+100)**(-0.8)) * sz
-
     data_batch = jax.random.shuffle(rng_key, X_data)[:batch_size, :]
     state = jax.jit(csgld.step)(subkey, state, data_batch, lr, stepsize_SA)
-
     if iter_ % thinning_factor == 0:
         energy_value = energy_fn(state.position, data_batch)
         csgld_sample_list = jnp.append(csgld_sample_list, state.position)
@@ -163,12 +161,10 @@ for iter_ in range(total_iter):
             jax.lax.floor((energy_value - min_energy) / energy_gap).astype("int32"),
             num_partitions - 2,
         )
-
-        #print('check gradient !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
         grad_mul = 1 + zeta * temperature * (jnp.log(state.energy_pdf[idx+1]) - jnp.log(state.energy_pdf[idx])) / energy_gap
         csgld_energy_idx_list = jnp.append(csgld_energy_idx_list, idx)
         print(f'iter {iter_/1000:.0f}k/{total_iter/1000:.0f}k position {state.position: .2f} energy {energy_value: .2f} grad mul {grad_mul: .2f} idx {idx}')
-        if iter_ % 50000 == 0:
+        if iter_ % 50000 == 0 and iter_ > 0:
             energy_history[iter_] = state.energy_pdf
 
 ### Make plots for CSGLD trajectory
