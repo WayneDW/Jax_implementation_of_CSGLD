@@ -213,25 +213,21 @@ plt.close()
 # 3.3 Analyze why CSGLD works
 for iters in energy_history:
     energy_pdf = energy_history[iters]
-    kernel_size = 10
+    kernel_size = 100
     kernel = jnp.ones(kernel_size) / kernel_size
     smooth_energy_pdf = jnp.convolve(energy_pdf, kernel, mode='same')
-
     interested_idx = jnp.arange(0, int(1000/energy_gap))
-
     plt.plot(jnp.arange(num_partitions)[interested_idx]*energy_gap, smooth_energy_pdf[interested_idx])
     plt.xlabel(f'Energy / Partition index (x4)')
     plt.ylabel('Density')
     plt.title('Normalized energy PDF')
     plt.savefig(f'./howto_use_csgld_CSGLD_energy_pdf_T{temperature}_zeta{zeta}_iter{total_iter}_sz{sz}_seed{mySeed}_v2_iter_{iters}.pdf')
     plt.close()
-
-
+    ##
+    ##
     ## Empirical learning rates for CSGLD in various energy partitions
-
     # follow Eq.(8) in https://proceedings.neurips.cc/paper/2020/file/b5b8c484824d8a06f4f3d570bc420313-Paper.pdf
     gradient_multiplier = 1 + zeta * temperature * jnp.diff(jnp.log(smooth_energy_pdf)) / energy_gap
-
     plt.plot(jnp.arange(num_partitions)[interested_idx]*energy_gap, gradient_multiplier[interested_idx], label='CSGLD')
     plt.plot(jnp.arange(num_partitions)[interested_idx]*energy_gap, jnp.array([1.] * len(interested_idx)), label='SGLD')
     plt.xlabel(f'Energy')
