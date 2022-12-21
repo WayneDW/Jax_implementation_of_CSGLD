@@ -62,7 +62,7 @@ logprob_fn, grad_fn = gradients.logprob_and_grad_estimator(
 
 # 2. SGLD baseline
 ### specify hyperparameters for SGLD
-total_iter = 40_005
+total_iter = 100_005
 
 
 temperature = 50
@@ -130,7 +130,7 @@ sz = 10
 ### The following parameters partition the energy space and no tuning is needed. 
 num_partitions = 100000
 energy_gap = 0.25
-min_energy = 3000 #81 # an estimate of the minimum energy, should be strictly lower than the exact one. !!!!!!!! more comment needed
+min_energy = 0 #81 # an estimate of the minimum energy, should be strictly lower than the exact one. !!!!!!!! more comment needed
 
 csgld = blackjax.csgld(
     logprob_fn,
@@ -147,7 +147,6 @@ state = csgld.init(init_position)
 
 csgld_sample_list, csgld_energy_idx_list = jnp.array([]), jnp.array([])
 
-energy_history = {}
 for iter_ in range(total_iter):
     rng_key, subkey = jax.random.split(rng_key)
     stepsize_SA = min(1e-2, (iter_+100)**(-0.8)) * sz
@@ -160,8 +159,6 @@ for iter_ in range(total_iter):
         idx = jax.lax.min(jax.lax.max(jax.lax.floor((energy_value - min_energy) / energy_gap + 1).astype("int32"), 1,), num_partitions - 1, )
         csgld_energy_idx_list = jnp.append(csgld_energy_idx_list, idx)
         print(f'iter {iter_/1000:.0f}k/{total_iter/1000:.0f}k position {state.position: .2f} energy {energy_value: .2f} idx {idx}')
-        if iter_ % 20000 == 0 and iter_ > 0:
-            energy_history[iter_] = state.energy_pdf
 
 ### Make plots for CSGLD trajectory
 plt.plot(csgld_sample_list, label='CSGLD')
@@ -211,28 +208,25 @@ plt.close()
 
 
 # 3.3 Analyze why CSGLD works
-for iters in energy_history:
-    energy_pdf = energy_history[iters]
-    smooth_energy_pdf = jnp.convolve(energy_pdf, jsp.stats.norm.pdf(jnp.arange(-100, 101), scale=50), mode='same')
-    interested_idx = jnp.arange(0, int(1000/energy_gap))
-    plt.plot(jnp.arange(num_partitions)[interested_idx]*energy_gap, smooth_energy_pdf[interested_idx])
-    plt.xlabel(f'Energy / Partition index (x4)')
-    plt.ylabel('Density')
-    plt.title('Normalized energy PDF')
-    plt.savefig(f'./howto_use_csgld_CSGLD_energy_pdf_T{temperature}_zeta{zeta}_iter{total_iter}_sz{sz}_seed{mySeed}_v2_iter_{iters}.pdf')
-    plt.close()
-    ##
-    ##
-    ## Empirical learning rates for CSGLD in various energy partitions
-    # follow Eq.(8) in https://proceedings.neurips.cc/paper/2020/file/b5b8c484824d8a06f4f3d570bc420313-Paper.pdf
-    gradient_multiplier = 1 + zeta * temperature * jnp.diff(jnp.log(smooth_energy_pdf)) / energy_gap
-    plt.plot(jnp.arange(num_partitions)[interested_idx]*energy_gap, gradient_multiplier[interested_idx], label='CSGLD')
-    plt.plot(jnp.arange(num_partitions)[interested_idx]*energy_gap, jnp.array([1.] * len(interested_idx)), label='SGLD')
-    plt.xlabel(f'Energy')
-    plt.ylabel('Gradient multiplier')
-    plt.legend()
-    plt.title('Gradient multipliers in different partitions')
-    plt.savefig(f'./howto_use_csgld_CSGLD_empirical_learning_rate_T{temperature}_zeta{zeta}_iter{total_iter}_sz{sz}_seed{mySeed}_v2_iter_{iters}.pdf')
-    plt.close()
+smooth_energy_pdf = jnp.convolve(energy_pdf, jsp.stats.norm.pdf(jnp.arange(-100, 101), scale=50), mode='same')
+interested_idx = jnp.arange(0, int(10000/energy_gap))
+plt.plot(jnp.arange(num_partitions)[interested_idx]*energy_gap, smooth_energy_pdf[interested_idx])
+plt.xlabel(f'Energy / Partition index (x4)')
+plt.ylabel('Density')
+plt.title('Normalized energy PDF')
+plt.savefig(f'./howto_use_csgld_CSGLD_energy_pdf_T{temperature}_zeta{zeta}_iter{total_iter}_sz{sz}_seed{mySeed}_v2.pdf')
+plt.close()
+    
+## Empirical learning rates for CSGLD in various energy partitions
+# follow Eq.(8) in https://proceedings.neurips.cc/paper/2020/file/b5b8c484824d8a06f4f3d570bc420313-Paper.pdf
+gradient_multiplier = 1 + zeta * temperature * jnp.diff(jnp.log(smooth_energy_pdf)) / energy_gap
+plt.plot(jnp.arange(num_partitions)[interested_idx]*energy_gap, gradient_multiplier[interested_idx], label='CSGLD')
+plt.plot(jnp.arange(num_partitions)[interested_idx]*energy_gap, jnp.array([1.] * len(interested_idx)), label='SGLD')
+plt.xlabel(f'Energy')
+plt.ylabel('Gradient multiplier')
+plt.legend()
+plt.title('Gradient multipliers in different partitions')
+plt.savefig(f'./howto_use_csgld_CSGLD_empirical_learning_rate_T{temperature}_zeta{zeta}_iter{total_iter}_sz{sz}_seed{mySeed}_v2.pdf')
+plt.close()
 
 
