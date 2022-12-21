@@ -208,9 +208,11 @@ plt.close()
 
 
 # 3.3 Analyze why CSGLD works
-smooth_energy_pdf = jnp.convolve(state.energy_pdf, jsp.stats.norm.pdf(jnp.arange(-100, 101), scale=50), mode='same')
-interested_idx = jax.lax.floor((jnp.arange(3682, 10000)) / energy_gap).astype('int32')
-plt.plot(jnp.arange(num_partitions)[interested_idx]*energy_gap, smooth_energy_pdf[interested_idx])
+interested_idx = jax.lax.floor((jnp.arange(3700, 10000)) / energy_gap).astype('int32') # min is 3681.
+smooth_energy_pdf = jnp.convolve(state.energy_pdf[interested_idx], jsp.stats.norm.pdf(jnp.arange(-100, 101), scale=30), mode='same')
+interested_energy = jnp.arange(num_partitions)[interested_idx]*energy_gap
+
+plt.plot(interested_energy, smooth_energy_pdf)
 plt.xlabel(f'Energy')
 plt.ylabel('Density')
 plt.title('Normalized energy PDF')
@@ -220,8 +222,8 @@ plt.close()
 ## Empirical learning rates for CSGLD in various energy partitions
 # follow Eq.(8) in https://proceedings.neurips.cc/paper/2020/file/b5b8c484824d8a06f4f3d570bc420313-Paper.pdf
 gradient_multiplier = 1 + zeta * temperature * jnp.diff(jnp.log(smooth_energy_pdf)) / energy_gap
-plt.plot(jnp.arange(num_partitions)[interested_idx]*energy_gap, gradient_multiplier[interested_idx], label='CSGLD')
-plt.plot(jnp.arange(num_partitions)[interested_idx]*energy_gap, jnp.array([1.] * len(interested_idx)), label='SGLD')
+plt.plot(interested_energy[1:], gradient_multiplier, label='CSGLD')
+plt.plot(interested_energy[1:], jnp.array([1.] * len(gradient_multiplier)), label='SGLD')
 plt.xlabel(f'Energy')
 plt.ylabel('Gradient multiplier')
 plt.legend()
