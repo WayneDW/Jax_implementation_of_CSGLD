@@ -128,7 +128,7 @@ zeta = 2
 sz = 10
 
 ### The following parameters partition the energy space and no tuning is needed. 
-num_partitions = 100000
+num_partitions = 50000
 energy_gap = 0.25
 min_energy = 0 #81 # an estimate of the minimum energy, should be strictly lower than the exact one. !!!!!!!! more comment needed
 
@@ -209,9 +209,9 @@ plt.close()
 
 # 3.3 Analyze why CSGLD works
 smooth_energy_pdf = jnp.convolve(state.energy_pdf, jsp.stats.norm.pdf(jnp.arange(-100, 101), scale=50), mode='same')
-interested_idx = jnp.arange(0, int(10000/energy_gap))
+interested_idx = jax.lax.floor((jnp.arange(3700, 5000)) / energy_gap).astype('int32')
 plt.plot(jnp.arange(num_partitions)[interested_idx]*energy_gap, smooth_energy_pdf[interested_idx])
-plt.xlabel(f'Energy / Partition index (x4)')
+plt.xlabel(f'Energy')
 plt.ylabel('Density')
 plt.title('Normalized energy PDF')
 plt.savefig(f'./howto_use_csgld_CSGLD_energy_pdf_T{temperature}_zeta{zeta}_iter{total_iter}_sz{sz}_seed{mySeed}_v2.pdf')
