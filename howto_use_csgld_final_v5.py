@@ -213,8 +213,7 @@ plt.close()
 # 3.3 Analyze why CSGLD works
 for iters in energy_history:
     energy_pdf = energy_history[iters]
-    kernel = jsp.stats.norm.pdf(jnp.arange(-50, 51), loc=2, scale=5)
-    smooth_energy_pdf = jnp.convolve(energy_pdf, jsp.stats.norm.pdf(jnp.arange(-100, 101), scale=10), mode='same')
+    smooth_energy_pdf = jnp.convolve(energy_pdf, jsp.stats.norm.pdf(jnp.arange(-100, 101), scale=50), mode='same')
     interested_idx = jnp.arange(0, int(1000/energy_gap))
     plt.plot(jnp.arange(num_partitions)[interested_idx]*energy_gap, smooth_energy_pdf[interested_idx])
     plt.xlabel(f'Energy / Partition index (x4)')
