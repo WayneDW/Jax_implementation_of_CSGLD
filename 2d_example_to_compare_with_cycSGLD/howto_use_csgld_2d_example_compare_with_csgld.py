@@ -65,8 +65,8 @@ def sample_fn(rng_key):
 import blackjax
 from fastprogress import progress_bar
 
-# 50k iterations
-num_training_steps = 50000
+# 250k iterations
+num_training_steps = 2500000
 schedule_fn = lambda k: 0.05 * k ** (-0.55)
 # TODO: There is no need to pre-compute the schedule
 schedule = [schedule_fn(i) for i in range(1, num_training_steps+1)]
