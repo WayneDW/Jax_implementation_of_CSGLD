@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-
+import sys
 import itertools
 
 import jax
@@ -18,12 +18,13 @@ import seaborn as sns
 import argparse
 
 parser = argparse.ArgumentParser(description='Grid search')
-parser.add_argument('-lr',  default=5e-3, type=float)
+parser.add_argument('-lr',  default=0.02, type=float)
 parser.add_argument('-zeta',  default=0.6, type=float)
-parser.add_argument('-sz',  default=10, type=float)
+parser.add_argument('-sz',  default=0.1, type=float)
 parser.add_argument('-temperature',  default=1, type=float)
 parser.add_argument('-num_partitions',  default=10000, type=int)
 parser.add_argument('-energy_gap',  default=0.001, type=float)
+parser.add_argument('-seed',  default=1, type=int)
 
 pars = parser.parse_args()
 
@@ -34,6 +35,7 @@ zeta = pars.zeta
 sz = pars.sz
 temperature = pars.temperature
 
+cur_seed = pars.seed
 ### The following parameters partition the energy space and no tuning is needed. 
 num_partitions = pars.num_partitions
 energy_gap = pars.energy_gap
@@ -72,7 +74,7 @@ schedule = [schedule_fn(i) for i in range(1, num_training_steps+1)]
 grad_fn = lambda x, _: jax.grad(logprob_fn)(x)
 sgld = blackjax.sgld(grad_fn)
 
-rng_key = jax.random.PRNGKey(3)
+rng_key = jax.random.PRNGKey(cur_seed)
 init_position = -10 + 20 * jax.random.uniform(rng_key, shape=(2,))
 
 position = init_position
@@ -90,7 +92,7 @@ fig, scatter = plt.subplots(figsize = (20, 20), dpi = 100)
 kde = sns.kdeplot(x=sgld_samples[:, 0], y=sgld_samples[:, 1],  cmap="Blues", fill=True, thresh=0.05, bw_method=0.15)
 kde.set_xlim(left=-5, right=5)
 kde.set_ylim(bottom=-5, top=5)
-plt.savefig("./2d_sgld.pdf")
+plt.savefig("./2d_figures/2d_sgld.pdf")
 plt.close()
 '''
 
@@ -113,10 +115,10 @@ temperature = 1
 num_partitions = 10000
 energy_gap = 0.001
 '''
-min_energy = -2
+min_energy = -2 # min energy -1.2 max energy around 0.067 ?
 
 
-thinning_factor = 100
+thinning_factor = 10
 
 csgld = blackjax.csgld(
     logprob_fn,
@@ -132,31 +134,58 @@ csgld = blackjax.csgld(
 state = csgld.init(init_position)
 
 csgld_samples = [] 
-#csgld_sample_list, csgld_energy_idx_list = jnp.array([]), jnp.array([])
+
+print('csgld sampling\n')
 for iter_ in progress_bar(range(num_training_steps)):
     rng_key, subkey = jax.random.split(rng_key)
     stepsize_SA = min(1e-2, (iter_+100)**(-0.8)) * sz
     state = jax.jit(csgld.step)(subkey, state, 0, lr, stepsize_SA)
+    
     csgld_samples.append(state.position)
 
-csgld_samples = jnp.array(csgld_samples)
+csgld_samples = jnp.array(csgld_samples)[1000: ][:: thinning_factor] # change to jnp format and remove warm-up samples + thinning
 
 fig, scatter = plt.subplots(figsize = (20, 20), dpi = 100)
 kde = sns.kdeplot(x=csgld_samples[:, 0], y=csgld_samples[:, 1],  cmap="Blues", fill=True, thresh=0.05, bw_method=0.15)
 kde.set_xlim(left=-5, right=5)
 kde.set_ylim(bottom=-5, top=5)
-plt.savefig(f"./2d_csgld_before_resampling_lr_{lr}_zeta_{zeta}_sz_{sz}_T_{temperature}_Egap_{energy_gap}_num_part_{num_partitions}.pdf")
+plt.savefig(f"./2d_figures/2d_csgld_before_resampling_lr_{lr}_zeta_{zeta}_sz_{sz}_T_{temperature}_Egap_{energy_gap}_num_part_{num_partitions}_seed_{cur_seed}.pdf")
 plt.close()
 
-'''
-energy_pdf = state.energy_pdf
 
-csgld_energy_idx_list = jnp.array([])
+if jnp.isnan(csgld_samples).sum() > 0:
+    sys.exit('nan value exists')
+
+print('csgld get index\n')
+csgld_energy_idx_list = []
 # get index of each particle for importance sampling
 for position in progress_bar(csgld_samples):
-    energy_value = logprob_fn(position))
+    energy_value = logprob_fn(position)
     idx = jax.lax.min(jax.lax.max(jax.lax.floor((energy_value - min_energy) / energy_gap + 1).astype("int32"), 1,), num_partitions - 1, )
-    csgld_energy_idx_list = jnp.append(csgld_energy_idx_list, idx)
-'''
+    csgld_energy_idx_list.append(idx)
+
+csgld_energy_idx_list = jnp.array(csgld_energy_idx_list)
 
 
+# pick important partitions for re-sampling
+important_idx = jnp.where(state.energy_pdf > jnp.quantile(state.energy_pdf, 0.95))[0]
+scaled_energy_pdf = state.energy_pdf[important_idx]**zeta / (state.energy_pdf[important_idx]**zeta).max()
+
+print('csgld re-sampling\n')
+# importance sampling via re-sampling
+csgld_re_sample_list = jnp.empty([0, 2])
+for _ in range(5):
+    rng_key, subkey = jax.random.split(rng_key)
+    for my_idx in important_idx:
+        if jax.random.bernoulli(rng_key, p=scaled_energy_pdf[my_idx], shape=None) == 1:
+            samples_in_my_idx = csgld_samples[csgld_energy_idx_list == my_idx]
+            csgld_re_sample_list = jnp.concatenate(
+                (csgld_re_sample_list, samples_in_my_idx), axis=0
+            )
+
+fig, scatter = plt.subplots(figsize = (20, 20), dpi = 100)
+kde = sns.kdeplot(x=csgld_re_sample_list[:, 0], y=csgld_re_sample_list[:, 1],  cmap="Blues", fill=True, thresh=0.05, bw_method=0.15)
+kde.set_xlim(left=-5, right=5)
+kde.set_ylim(bottom=-5, top=5)
+plt.savefig(f"./2d_figures/2d_csgld_after_resampling_lr_{lr}_zeta_{zeta}_sz_{sz}_T_{temperature}_Egap_{energy_gap}_num_part_{num_partitions}_seed_{cur_seed}.pdf")
+plt.close()
