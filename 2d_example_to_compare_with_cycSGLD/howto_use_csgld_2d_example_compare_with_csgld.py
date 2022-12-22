@@ -24,7 +24,7 @@ parser.add_argument('-sz',  default=10, type=float)
 parser.add_argument('-temperature',  default=1, type=float)
 parser.add_argument('-num_partitions',  default=10000, type=int)
 parser.add_argument('-energy_gap',  default=0.001, type=float)
-parser.add_argument('-seed',  default=1, type=int)
+parser.add_argument('-seed',  default=90213, type=int)
 
 pars = parser.parse_args()
 
