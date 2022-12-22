@@ -55,7 +55,14 @@ import seaborn as sns
 
 sgld_samples = jnp.array(sgld_samples)
 
-sns.kdeplot(x=sgld_samples[:, 0], y=sgld_samples[:, 1],  cmap="Blues", fill=True, thresh=0.05, bw_method=0.15)
+#sns.kdeplot(x=sgld_samples[:, 0], y=sgld_samples[:, 1],  cmap="Blues", fill=True, thresh=0.05, bw_method=0.15)
 
+#plt.savefig("./2d_sgld.pdf")
+#plt.close()
+
+fig, scatter = plt.subplots(figsize = (20, 20), dpi = 100)
+kde = sns.kdeplot(x=sgld_samples[:, 0], y=sgld_samples[:, 1],  cmap="Blues", fill=True, thresh=0.05, bw_method=0.15)
+kde.set_xlim(left=-5, right=5)
+kde.set_ylim(bottom=-5, top=5)
 plt.savefig("./2d_sgld.pdf")
 plt.close()
