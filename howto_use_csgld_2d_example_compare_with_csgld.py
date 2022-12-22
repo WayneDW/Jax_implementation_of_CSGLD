@@ -18,8 +18,8 @@ import seaborn as sns
 import argparse
 
 parser = argparse.ArgumentParser(description='Grid search')
-parser.add_argument('-lr',  default=1e-3, type=float)
-parser.add_argument('-zeta',  default=2, type=float)
+parser.add_argument('-lr',  default=5e-3, type=float)
+parser.add_argument('-zeta',  default=0.6, type=float)
 parser.add_argument('-sz',  default=10, type=float)
 parser.add_argument('-temperature',  default=1, type=float)
 parser.add_argument('-num_partitions',  default=10000, type=int)
@@ -64,7 +64,7 @@ import blackjax
 from fastprogress import progress_bar
 
 # 50k iterations
-num_training_steps = 10000
+num_training_steps = 50000
 schedule_fn = lambda k: 0.05 * k ** (-0.55)
 # TODO: There is no need to pre-compute the schedule
 schedule = [schedule_fn(i) for i in range(1, num_training_steps+1)]
