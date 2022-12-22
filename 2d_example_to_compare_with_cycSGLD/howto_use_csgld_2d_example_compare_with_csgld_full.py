@@ -7,28 +7,40 @@ import jax.scipy as jsp
 import jax.numpy as jnp
 
 from typing import Callable, NamedTuple
-
-from fastprogress import progress_bar
-
-import blackjax
 from blackjax.types import Array, PRNGKey, PyTree
 
 import matplotlib.pyplot as plt
 import seaborn as sns
 
 
-### hyperparameters in general
-lr = 0.01
-temperature = 1
+''' starting module for hyperparameter tuning '''
 
-### hyperparameters for csgld
-zeta = 0.06
-sz = 10
+import argparse
 
-cur_seed = 90213
+parser = argparse.ArgumentParser(description='Grid search')
+parser.add_argument('-lr',  default=0.01, type=float)
+parser.add_argument('-zeta',  default=0.06, type=float)
+parser.add_argument('-sz',  default=10, type=float)
+parser.add_argument('-temperature',  default=1, type=float)
+parser.add_argument('-num_partitions',  default=10000, type=int)
+parser.add_argument('-energy_gap',  default=0.001, type=float)
+parser.add_argument('-seed',  default=90213, type=int)
+
+pars = parser.parse_args()
+
+
+
+lr = pars.lr
+zeta = pars.zeta
+sz = pars.sz
+temperature = pars.temperature
+
+cur_seed = pars.seed
 ### The following parameters partition the energy space and no tuning is needed. 
-num_partitions = 10000
-energy_gap = 0.001
+num_partitions = pars.num_partitions
+energy_gap = pars.energy_gap
+''' ending module for hyperparameter tuning '''
+
 
 
 lmbda = 1/25
@@ -48,16 +60,21 @@ def sample_fn(rng_key):
 
 
 
+## SGLD baseline 
+
+import blackjax
+from fastprogress import progress_bar
 
 # 250k iterations
 num_training_steps = 250000
 
 grad_fn = lambda x, _: jax.grad(logprob_fn)(x)
+sgld = blackjax.sgld(grad_fn)
 
 rng_key = jax.random.PRNGKey(cur_seed)
 init_position = -10 + 20 * jax.random.uniform(rng_key, shape=(2,))
 
-position = init_position
+
 ### CSGLD part
 
 
@@ -67,7 +84,6 @@ class CSGLDState(NamedTuple):
     energy_idx: int
 
 min_energy = -2 # min energy -1.2 max energy around 0.067 ?
-
 
 thinning_factor = 10
 
