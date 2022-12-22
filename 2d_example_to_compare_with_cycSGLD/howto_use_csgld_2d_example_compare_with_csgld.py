@@ -66,7 +66,7 @@ import blackjax
 from fastprogress import progress_bar
 
 # 250k iterations
-num_training_steps = 2500000
+num_training_steps = 1000000
 schedule_fn = lambda k: 0.05 * k ** (-0.55)
 # TODO: There is no need to pre-compute the schedule
 schedule = [schedule_fn(i) for i in range(1, num_training_steps+1)]
@@ -79,22 +79,22 @@ init_position = -10 + 20 * jax.random.uniform(rng_key, shape=(2,))
 
 position = init_position
 
-'''
+
 sgld_samples = []
 for i in progress_bar(range(num_training_steps)):
     _, rng_key = jax.random.split(rng_key)
-    position = jax.jit(sgld)(rng_key, position, 0, schedule[i])
+    position = jax.jit(sgld)(rng_key, position, 0, lr)
     sgld_samples.append(position)
 
-sgld_samples = jnp.array(sgld_samples)
+sgld_samples = jnp.array(sgld_samples)[::40]
 
 fig, scatter = plt.subplots(figsize = (20, 20), dpi = 100)
 kde = sns.kdeplot(x=sgld_samples[:, 0], y=sgld_samples[:, 1],  cmap="Blues", fill=True, thresh=0.05, bw_method=0.15)
 kde.set_xlim(left=-5, right=5)
 kde.set_ylim(bottom=-5, top=5)
-plt.savefig("./2d_figures/2d_sgld.pdf")
+plt.savefig("./2d_figures/2d_sgld_v2.pdf")
 plt.close()
-'''
+
 
 ### CSGLD part
 
