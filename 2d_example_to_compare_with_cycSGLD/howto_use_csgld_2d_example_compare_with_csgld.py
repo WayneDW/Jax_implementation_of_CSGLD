@@ -18,9 +18,9 @@ import seaborn as sns
 import argparse
 
 parser = argparse.ArgumentParser(description='Grid search')
-parser.add_argument('-lr',  default=0.02, type=float)
-parser.add_argument('-zeta',  default=0.6, type=float)
-parser.add_argument('-sz',  default=0.1, type=float)
+parser.add_argument('-lr',  default=0.01, type=float)
+parser.add_argument('-zeta',  default=0.06, type=float)
+parser.add_argument('-sz',  default=10, type=float)
 parser.add_argument('-temperature',  default=1, type=float)
 parser.add_argument('-num_partitions',  default=10000, type=int)
 parser.add_argument('-energy_gap',  default=0.001, type=float)
